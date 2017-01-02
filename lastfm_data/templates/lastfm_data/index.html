@@ -1,0 +1,167 @@
+{% load staticfiles %}
+<html xmlns="http://www.w3.org/1999/html">
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+    <script src="{% static 'js/signals.js' %}"></script>
+    <script src="{% static 'js/crossroads.js' %}"></script>
+    <script src="{% static 'js/hasher.js' %}"></script>
+    <script src="{% static 'js/my_scripts.js' %}"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="{% static 'js/underscore-min.js' %}"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+
+    <title></title>
+    <style>
+        .jumbotron {
+            background-color: #f4511e; /* Orange */
+            color: #ffffff;
+        }
+
+        #container, #container_2, #container_3 {
+            width: 600px;
+        }
+
+        li a {
+            color: #f4511e;
+            font-weight: bold;
+        }
+
+        .nav-pills > li.active > a:hover {
+            background-color: #A94442
+        }
+
+        .nav-pills > li.active > a {
+            background-color: #A94442
+        }
+    </style>
+</head>
+<!-- BEGIN: Underscore Template Definition. -->
+<div class="jumbotron text-center">
+    <h1>Company</h1>
+
+    <p>We specialize in blablabla</p>
+
+    <form class="form-inline">
+        <input type="text" id="username" class="form-control" size="50" placeholder="Your username">
+        <button type="button" class="btn btn-danger">Submit</button>
+    </form>
+</div>
+<div class="container">
+    <h2>Lastfm user info</h2>
+    <ul class="nav nav-pills" id="ul_container">
+        <li><a data-toggle="pill" id="topArtistsBtn" href="#topArtists">Top Artists Chart</a></li>
+        <li><a data-toggle="pill" id="scrobblesByYearBtn" href="#scrobblesByYear">Scrobbles By Year Chart</a></li>
+        <li><a data-toggle="pill" id="topAlbumsByYearBtn" href="#topAlbumsByYear">Top Albums By Year</a></li>
+        <li><a data-toggle="pill" id="collageBtn" href="#collage">Collage</a></li>
+        <li><a data-toggle="pill" id="forgottenAlbumsBtn" href="#forgottenAlbums">Forgotten Albums</a></li>
+    </ul>
+        <div style="display: none" id="loading"><img src="{% static 'images/ajax-loader.gif' %}"></div>
+
+
+    <div class="tab-content">
+        <div id="topArtists" class="tab-pane fade in active">
+
+            <div id="container" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+
+        </div>
+        <div id="scrobblesByYear" class="tab-pane fade">
+
+
+            <div id="container_2" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+        </div>
+        <div id="topAlbumsByYear" class="tab-pane fade">
+            <div id="container_3" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto">
+            </div>
+        </div>
+        <div id="collage" class="tab-pane fade">
+            <div id="container_4" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto">
+            </div>
+        </div>
+        <div id="forgottenAlbums" class="tab-pane fade">
+            <form id="year_input">
+                <label for="year"> Select year:</label>
+                    <select id="year">
+                        <option value="2008">2008</option>
+                        <option value="2009">2009</option>
+                        <option value="2010">2010</option>
+                        <option value="2011">2011</option>
+                        <option value="2012">2012</option>
+                        <option value="2013">2013</option>
+                        <option value="2014">2014</option>
+                        <option value="2015">2015</option>
+                    </select>
+                <input id="submit_year" type="submit" value="submit">
+            </form>
+            <div id="container_5" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto">
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+
+        <script type="text/template" id="top-albums-template">
+
+
+            <% _.each( rc.top_albums, function( top_album ){ %>
+            <h1><%- top_album.year%></h1>
+            <div class="row">
+                <% _.each( top_album.months, function( month ){ %>
+                <div class="col-sm-4" style="background-color:lavender;">
+
+                    <%- month.month %>
+                </div>
+                <div class="col-sm-8" style="background-color:lavenderblush;">
+                    <div> <%- month.album %></div>
+                    <div> <%- month.artist %></div>
+                    <% if(month.img) { %>
+                    <img style="width: 100px; height: 100px" src="<%- month.img%>">
+                    <% } else { %>
+                    <p>No cover</p>
+                    <% } %>
+                </div>
+                <% }); %>
+            </div>
+            <% }); %>
+        </script>
+
+
+        <script type="text/template" id="forgotten-albums-template">
+            <div class="row">
+
+
+            <% _.each( rc.forgotten_albums, function( forgotten_album ){ %>
+                <div class="col-sm-8">
+                    <h6><%- forgotten_album.album %></h6>
+                    <h6><%- forgotten_album.artist %></h6>
+                    <h6><%- forgotten_album.last_listened %></h6>
+                    <h6> Total scrobbles: <%- forgotten_album.total_scrobbles %></h6>
+                    </div>
+                <div class="col-sm-4">
+
+                    <% if(forgotten_album.album_image) { %>
+                    <img style="width: 100px; height: 100px" src="<%- forgotten_album.album_image%>">
+                    <% } else { %>
+                    <p>No cover</p>
+                    <% } %>
+                    </div>
+                    <% }); %>
+                </div>
+
+        </script>
+Date is {% now 'd-m-Y' %}
+    </div>
+
+
+
+
+</div>
+
+
+
+
+</html>
