@@ -1,5 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
+
+from time import time
 from django.db.models.aggregates import Count
 import requests
 from django.core.files.base import ContentFile
@@ -11,13 +13,16 @@ from math import sqrt
 
 
 def fill_played_tracks(username, clearall=False, page_from=1, page_to=5):
-    user, __ = ServiceUser.objects.get_or_create(username=username)
+    user = ServiceUser.objects.get(username=username)
 
     if clearall:
         d = PlayedTrack.objects.filter(user=user)
         d.delete()
 
     client = lastfm_client.LastfmClient()
+
+    print('Handling page from {} to {} for {}'.format(page_from, page_to, username))
+    t_start = time()
 
     pages = client.get_recent_tracks(username, page_from=page_from, page_to=page_to)
 
@@ -30,7 +35,10 @@ def fill_played_tracks(username, clearall=False, page_from=1, page_to=5):
 
     counter = 0
     for tracks in pages:
-
+        t_end = time()
+        print('Received tracks from lastfm for page from {} to {} for {}. time {}'.format(page_from, page_to, username,
+                                                                                          t_end - t_start))
+        t_start = time()
 
         for item in tracks:
             import hashlib
@@ -79,7 +87,7 @@ def fill_played_tracks(username, clearall=False, page_from=1, page_to=5):
                 str(datetime.strptime(item['playback_date'], "%d %b %Y, %H:%M" ))
             ))
 
-            uid = hashlib.sha256(smart_str(uid)).hexdigest()
+            uid = hashlib.sha256(smart_str(uid).encode('utf-8')).hexdigest()
 
             if uid not in uids:
                 uids.add(uid)
@@ -95,16 +103,23 @@ def fill_played_tracks(username, clearall=False, page_from=1, page_to=5):
                 played_tracks.append(model)
                 counter += 1
 
-            # Save data each 100 records
-            if counter % 100 == 0:
-                print "saved %s tracks" % counter
+            # Save data each 500 records
+            if counter % 400 == 0:
+                print ("saved %s tracks" % counter)
                 PlayedTrack.objects.bulk_create(played_tracks)
                 # Reset list for next 100 tracks
                 played_tracks = []
+
+        t_end = time()
+        print('Created artists, albums, tracks for for page from {} to {} for {}. time {}'.format(
+            page_from, page_to, username, t_end - t_start)
+        )
+        t_start = time()
+
     # Save the rest tracks for example when we have less 100 tracks
     # or 9545 tracks, in this case last 45 tracks will not be saved in for
     PlayedTrack.objects.bulk_create(played_tracks)
-    print "Done"
+    print ("Done")
 
 
 def create_and_get_artists(artists_name):
@@ -153,6 +168,7 @@ def fill_track_new(user):
                     uid=str(uuid4())
                 )
 
+
 def update_album_model():
 
     albums = Album.objects.all()
@@ -160,7 +176,6 @@ def update_album_model():
     for album in albums:
         album.tracks_count = client.get_album(album.artist.name, album.name)['tracks_count']
         album.save()
-
 
 
 def update_albums(username, update_images=True, update_tracks_count=True):
@@ -173,7 +188,7 @@ def update_albums(username, update_images=True, update_tracks_count=True):
         album_data = client.get_album(album.artist.name, album.name)
         if update_tracks_count:
             album.tracks_count = album_data['tracks_count']
-        print album_data['image']
+        print (album_data['image'])
         if update_images and album_data['image']:
             image = requests.get(album_data['image']).content
             album.image.save(album_data['image'], ContentFile(image), save=True)
@@ -203,96 +218,11 @@ def fill_artist_rate(user):
 
 def prepre_rates():
     # raters = {}
-    listeners = ArtistRate.objects.select_related('user', 'artist').values_list('user__username', 'artist__name', 'rate')
+    listeners = ArtistRate.objects.select_related('user', 'artist').values_list('user__username', 'artist__name',
+                                                                                'rate')
     # for user, group in groupby(listeners, lambda item: item[0]):
     #     raters[user] = {artist: rate for __, artist, rate in list(group)}
-    raters = {user: {artist: rate for __, artist, rate in list(group)} for user, group in groupby(listeners, lambda item: item[0])}
+    raters = {user: {artist: rate for __, artist, rate in list(group)} for user, group in groupby(listeners,
+                                                                                                  lambda item: item[0])}
 
     return raters
-
-
-
-def sim_distance(prefs, me, other):
-
-
-    # Get the list of shared items
-    si = {}
-    for item in prefs[me]:
-        if item in prefs[other]:
-            si[item] = 1
-    # If they have no ratings in common, return 0
-    if len(si) == 0:
-        return 0
-
-    # Add up the squares of all the differences
-    sum_of_squares =sqrt(sum([pow(prefs[me][item] - prefs[other][item], 2) for item in prefs[me] if item in prefs[other]]))
-    return 1 / (1 + sum_of_squares)
-
-
-# Returns the Pearson correlation coefficient for p1 and p2
-def sim_pearson(prefs, me, other):
-    # Get the list of mutually rated items
-    si = {}
-    for item in prefs[me]:
-        if item in prefs[other]:
-            si[item]=1
-    # Find the number of elements
-    n = len(si)
-
-    # if they are no ratings in common, return 0
-    if n == 0:
-        return 0
-
-    # Add up all the preferences
-    sum1 = sum([prefs[me][it] for it in si])
-    sum2 = sum([prefs[other][it] for it in si])
-    # print(sum1, sum2)  18.0 19.5
-
-    # Sum up all the squares
-    sum1Sq = sum([pow(prefs[me][it], 2) for it in si])
-    sum2Sq = sum([pow(prefs[other][it], 2) for it in si])
-
-    # Sum up the products
-    pSum = sum([prefs[me][it] * prefs[other][it] for it in si])
-
-    # Calculate the Pearson score
-    num = pSum - (sum1 * sum2 / n)
-    den = sqrt((sum1Sq - pow(sum1, 2)/n) * (sum2Sq - pow(sum2, 2)/n))
-    if den == 0:
-        return 0
-    r = num/den
-    return r
-
-
-
-def topMatches(prefs, person, n=7, similarity=sim_pearson):
-    scores = [(similarity(prefs, person, other),other) for other in prefs if other != person]
-    print (sorted(scores, reverse=True)[0:n])
-
-
-def getRecommendations(prefs, person, similarity=sim_pearson):
-    totals = {}
-    simSums = {}
-    for other in prefs:
-        # don't compare me to myself
-        if other == person:
-            continue
-        sim = similarity(prefs, person, other)
-        # ignore scores of zero or lower
-        if sim <= 0:
-            continue
-        for item in prefs[other]:
-            # only score movies I haven't seen yet
-            if item not in prefs[person]:
-                # Similarity * Score
-                totals.setdefault(item, 0)
-                totals[item] += prefs[other][item] * sim
-                # Sum of similarities
-                simSums.setdefault(item, 0)
-                simSums[item] += sim
-        # Create the normalized list
-        rankings = [(total/simSums[item], item) for item, total in totals.items()]
-        # return the sorted list
-        return sorted(rankings, reverse=True)
-
-

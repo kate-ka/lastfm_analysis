@@ -65,19 +65,21 @@ class LastfmClient(object):
             'image': image_url
         }
 
+    def get_info(self, username):
+        params = self._prepare_params(method='user.getInfo', user=username)
+        data = requests.get(self.api_url, params).json()
 
-    # def count_album_tracks(self, album_name, artist_name):
-    #     params = self._prepare_params(method='album.getinfo', artist=artist_name, album=album_name)
-    #
-    #     data = requests.get(self.api_url, params).json()
-    #
-    #     if 'message' in data and data['message'] == 'Album not found':
-    #         tracks_count = 0
-    #     else:
-    #         tracks_count = len(data['album']['tracks']['track'])
-    #
-    #     return tracks_count
-    #
+        return data['user']
 
+    def get_played_tracks_count(self, username):
+        info = self.get_info(username)
 
+        if not info:
+            # TODO error handling
+            pass
+
+        played_tracks_count = int(info['playcount'])
+        pages_count = played_tracks_count // 1000
+
+        return pages_count
 

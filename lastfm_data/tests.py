@@ -27,6 +27,13 @@ class LastFmClienTestCase(TestCase):
 
         self.assertEqual(tracks_count, 0)
 
+    def test_get_info(self):
+        client = lastfm_client.LastfmClient()
+
+        result = client.get_info('MetalPumpkin')
+        self.assertIn('playcount', result)
+
+
 
 
 

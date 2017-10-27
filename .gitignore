@@ -89,3 +89,4 @@ ENV/
 .ropeproject
 media/
 .idea/
+lastfm_analysis/settings_local.py

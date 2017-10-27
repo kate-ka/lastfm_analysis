@@ -1,22 +1,19 @@
 # After adding the message broker, add the lines in a new file celery.py that tells
 # Celery that we will use the settings in settings.py .
-
-
-from __future__ import absolute_import
-
+from __future__ import absolute_import, unicode_literals
 import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mycelery.settings')
-
-from django.conf import settings
 from celery import Celery
 
-app = Celery('lastfm_analysis',
-             backend='amqp',
-             broker='amqp://guest@localhost//')
+# set the default Django settings module for the 'celery' program.
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lastfm_analysis.settings')
 
-# This reads, e.g., CELERY_ACCEPT_CONTENT = ['json'] from settings.py:
-app.config_from_object('django.conf:settings')
+app = Celery('lastfm_analysis')
 
-# For autodiscover_tasks to work, you must define your tasks in a file called 'tasks.py'.
-app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+# Using a string here means the worker don't have to serialize
+# the configuration object to child processes.
+# - namespace='CELERY' means all celery-related configuration keys
+#   should have a `CELERY_` prefix.
+app.config_from_object('django.conf:settings', namespace='CELERY')
 
+# Load task modules from all registered Django app configs.
+app.autodiscover_tasks(related_name='celery_tasks')
