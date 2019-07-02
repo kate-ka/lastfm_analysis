@@ -47,3 +47,10 @@ services:
       - db
       - lastfm_analysis
       - redis
+
+  lastfm_frontend:
+    image: katerynaup/lastfm_frontend:latest
+    ports:
+      - "7000:9000"
+    depends_on:
+      - lastfm_analysis

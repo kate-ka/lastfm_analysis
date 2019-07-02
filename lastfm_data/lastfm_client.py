@@ -55,7 +55,7 @@ class LastfmClient(object):
             tracks_count = 0
         else:
             tracks_count = len(data['album']['tracks']['track'])
-        if data['album']['image']:
+        if data.get('album', {}).get('image'):
             image_url = data['album']['image'][2]['#text']
         else:
             image_url = None
