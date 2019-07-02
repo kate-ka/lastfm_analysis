@@ -1,0 +1,49 @@
+version: "3"
+
+services:
+  lastfm_analysis:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/lastfm_analysis
+    command: >
+      sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=mysecretpassword
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:10-alpine
+    environment:
+      - POSTGRES_DB=app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+
+  redis:
+    image: redis:3.2
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build:
+      context: .
+    volumes:
+      - .:/lastfm_analysis
+    command: >
+      sh -c "celery -A lastfm_analysis worker --loglevel=info --concurrency=10"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=mysecretpassword
+    depends_on:
+      - db
+      - lastfm_analysis
+      - redis

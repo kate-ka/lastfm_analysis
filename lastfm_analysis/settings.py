@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'django_celery_results',
+    # 'django_celery_results',
     'lastfm_data',
     'corsheaders',
 ]
@@ -80,17 +80,26 @@ WSGI_APPLICATION = 'lastfm_analysis.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'lastfm_data',
+#         'USER': 'lastfm_data_user',
+#         'PASSWORD': 'qwerty',
+#         'HOST': 'localhost',
+#         'PORT': '',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'lastfm_data',
-        'USER': 'lastfm_data_user',
-        'PASSWORD': 'qwerty',
-        'HOST': 'localhost',
-        'PORT': '',
+        'HOST': os.environ.get('DB_HOST'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASS'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -157,17 +166,19 @@ LOGGING = {
         },
     },
 }
+#
+# CORS_ORIGIN_WHITELIST = (
+#     '*',
+# )
 
-CORS_ORIGIN_WHITELIST = (
-    'localhost:9000'
-)
+CORS_ORIGIN_ALLOW_ALL = True
 
-BROKER_URL = 'amqp://guest:guest@localhost//'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 ATOMIC_REQUESTS = False
 
-from .settings_local import *
+# from .settings_local import *

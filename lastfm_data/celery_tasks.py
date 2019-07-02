@@ -1,11 +1,13 @@
-from celery import group, task
+from __future__ import absolute_import
+
+from celery import group, shared_task
 
 from lastfm_data import lastfm_client
 from lastfm_data.models import ServiceUser
 from lastfm_data.tasks import fill_played_tracks
 
 
-@task
+@shared_task
 def task_handle_tracks_page(username, page_number):
     fill_played_tracks(username, page_from=page_number, page_to=page_number)
 
