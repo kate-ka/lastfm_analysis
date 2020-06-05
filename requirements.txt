@@ -1,5 +1,5 @@
 celery==4.1.1
-Django==1.9
+Django==1.11.29
 django-cors-headers==1.2.2
 django-extensions==1.7.2
 gunicorn==18.0
